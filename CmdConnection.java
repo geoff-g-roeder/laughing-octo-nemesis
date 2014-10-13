@@ -76,6 +76,55 @@ public class CmdConnection {
 			setUserLoggedIn(true);
 		}	
 	}
+	
+	
+	/*
+	 * 
+	 * ACCOUNT (ACCT)
+
+            The argument field is a Telnet string identifying the user's
+            account.  The command is not necessarily related to the USER
+            command, as some sites may require an account for login and
+            others only for specific access, such as storing files.  In
+            the latter case the command may arrive at any time.
+
+            There are reply codes to differentiate these cases for the
+            automation: when account information is required for login,
+            the response to a successful PASSword command is reply code
+            332.  On the other hand, if account information is NOT
+            required for login, the reply to a successful PASSword
+            command is 230; and if the account information is needed for
+            a command issued later in the dialogue, the server should
+            return a 332 or 532 reply depending on whether it stores
+            (pending receipt of the ACCounT command) or discards the
+            command, respectively.
+	 */
+	
+	// If string == PASS, then for login
+	// If string == stor or otherwise, then for file access
+	// EFFECTS: if receive 230 or 202, sets UserLoggedIn to true
+	// 		    
+	private void getAcct(String string) {
+		BufferedReader bf = new BufferedReader(new InputStreamReader(System.in));
+		
+		try {
+			System.out.print("Account: ");
+			String account = bf.readLine();
+
+			String response = sendAcct(account);
+			if (response.equals("230") || response.equals("202")) {
+				setUserLoggedIn(true);
+			} else if (response.equals("") || response.equals("503") || response.equals(530)) {
+				setUserLoggedIn(false);
+			}
+
+		} catch (IOException e) {
+			System.err.println("998 Input error while reading commands, terminating.");
+			close();
+			System.exit(1);
+		}
+		
+	}
 
 	private void sendMessage(String message) {
 		speaker.setMessage(message);
@@ -87,6 +136,14 @@ public class CmdConnection {
 		sendMessage(message);
 
 		return responseProcessor.listenPw();
+	}
+	
+	public String sendAcct(String account) {
+		String message = "ACCT " + account;
+		sendMessage(account);
+		
+		return responseProcessor.listenAcct();
+		
 	}
 
 	// This method sends the PASV command to the server
@@ -149,7 +206,6 @@ public class CmdConnection {
 		return responseProcessor.listenGet();
 	}
 	
-	
 	public String listenForMessage() {
 		return responseProcessor.listen();
 	}
@@ -173,7 +229,9 @@ public class CmdConnection {
 			String response = sendPassword(password);
 			if (response.equals("230")) {
 				setUserLoggedIn(true);
-			} else {
+			} else if (response.equals("332")) {
+				getAcct("PASS");
+			} else if (response.equals("")) {
 				setUserLoggedIn(false);
 			}
 

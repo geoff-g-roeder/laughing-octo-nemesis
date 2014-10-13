@@ -187,4 +187,16 @@ public class ResponseProcessor {
 		}
 		return false;
 	}
+
+	public String listenAcct() {
+		
+		String response = listen();
+		String seenCode = "";
+		
+		if (response != null)  {
+			seenCode = response.substring(0,3);	
+		}
+		
+		return seenCode;
+	}
 }
